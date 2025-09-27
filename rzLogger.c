@@ -106,39 +106,36 @@ void rzLog_set_output(const char* filename)
     (void)filename; 
 }
 
-void rzLog(rz_logger_level_t level, const char* format, ...)
-{
-    if(currentLevel < level)
-    {
-        return;
-    }
-
-    // 2. Formatear el mensaje usando argumentos variables
-    char buffer[1024];
-    va_list args;                    // Lista de argumentos variables
-    va_start(args, format);          // Inicializar lista después de 'format'
-    vsnprintf(buffer, sizeof(buffer), format, args);  // Como sprintf pero con va_list
-    va_end(args);                    // Limpiar lista
+void rzLog_impl(rz_logger_level_t level, const char* file, int line, const char* func, const char* format, ...) {
+    if (level > currentLevel || !init) return;
     
-    // 3. Crear entrada para la cola
+    // 1. Formatear mensaje usuario
+    char user_msg[512];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(user_msg, sizeof(user_msg), format, args);
+    va_end(args);
+    
+    // 2. Crear mensaje completo con info de debug
+    char full_msg[1024];
+    const char* filename = strrchr(file, '/');  // Solo nombre, no ruta completa
+    filename = filename ? filename + 1 : file;
+    
+    snprintf(full_msg, sizeof(full_msg), "[%s:%d: %s] %s", 
+             filename, line, func, user_msg);
+    
+    // 3. Meter en cola como antes
     log_entry_t entry;
-    strncpy(entry.buffer, buffer, sizeof(entry.buffer) - 1);
-    entry.buffer[sizeof(entry.buffer) - 1] = '\0';  // Terminar string
+    strncpy(entry.buffer, full_msg, sizeof(entry.buffer) - 1);
+    entry.buffer[sizeof(entry.buffer) - 1] = '\0';
     entry.level = level;
-    clock_gettime(CLOCK_REALTIME, &entry.timestamp);  // Timestamp actual
-
-        
-    // 4. Meter en cola thread-safe
-    pthread_mutex_lock(&queue_mutex);
+    clock_gettime(CLOCK_REALTIME, &entry.timestamp);
     
-    // Verificar que la cola no esté llena
+    pthread_mutex_lock(&queue_mutex);
     int next_head = (queue_head + 1) % QUEUE_SIZE;
-    if (next_head != queue_tail) {  // No está llena
+    if (next_head != queue_tail) {
         log_queue[queue_head] = entry;
         queue_head = next_head;
     }
-    // Si está llena, se pierde el mensaje (o podrías sobrescribir el más viejo)
-    
     pthread_mutex_unlock(&queue_mutex);
-
 }

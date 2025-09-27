@@ -1,6 +1,13 @@
 #ifndef RZ_LOGGER_H
 #define RZ_LOGGER_H
 
+#define rzLog(level, format, ...) \
+    rzLog_impl(level, __FILE__, __LINE__, __FUNCTION__, format, ##__VA_ARGS__)
+
+#define rzERROR(format, ...) rzTraza(RZ_TRACE_ERROR, format, ##__VA_ARGS__)
+#define rzWARN(format, ...)  rzTraza(RZ_TRACE_WARN,  format, ##__VA_ARGS__)  
+#define rzINFO(format, ...)  rzTraza(RZ_TRACE_INFO,  format, ##__VA_ARGS__)
+#define rzDEBUG(format, ...) rzTraza(RZ_TRACE_DEBUG, format, ##__VA_ARGS__)
 
 typedef enum {
     RZ_LOG_ERROR        = 1,
@@ -10,7 +17,7 @@ typedef enum {
     RZ_LOG_DEBUG_EXTRA  = 5
 } rz_logger_level_t;
 
-void rzLog(rz_logger_level_t level, const char* format, ...);
+void rzLog_impl(rz_logger_level_t level, const char* file, int line, const char* func, const char* format, ...);
 
 void rzLog_init();
 void rzLog_stop();
