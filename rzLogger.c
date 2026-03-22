@@ -60,7 +60,7 @@ void* logger_thread_func(void* arg)
             pthread_mutex_unlock(&queue_mutex);
 
             char timestamp[32];
-            strftime(timestamp, sizeof(timestamp), "%H:%M:%S", localtime(&entry.timestamp.tv_sec));
+            strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", localtime(&entry.timestamp.tv_sec));
             printf("[%s][%s] %s\n", timestamp, level2Str(entry.level), entry.buffer);
             fflush(stdout);  // Forzar salida inmediata
         }
